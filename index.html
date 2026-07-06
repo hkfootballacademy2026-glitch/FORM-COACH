@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FORM COACH v4 — サッカー動作分析</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pitch:#0B120F; --panel:#131D18; --panel2:#0F1814; --line:#26362E;
+  --chalk:#EEF4EF; --muted:#8DA396; --lime:#C9FF4D; --lime-dim:#89b32e;
+  --amber:#FFB454; --red:#FF6B5E; --blue:#7FA7D8; --radius:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--pitch);color:var(--chalk);font-family:'Zen Kaku Gothic New',sans-serif;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer}
+.num{font-family:'Oswald',sans-serif;font-weight:600;letter-spacing:.01em}
+
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand .logo{font-family:'Oswald',sans-serif;font-weight:700;font-size:20px;letter-spacing:.06em;color:var(--lime)}
+.brand .sub{font-size:11px;color:var(--muted);letter-spacing:.14em}
+.hset{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.hset input{width:64px;background:var(--panel);border:1px solid var(--line);color:var(--chalk);border-radius:8px;padding:6px 8px;font-family:'Oswald',sans-serif;font-size:14px;text-align:right}
+.hset input:focus{outline:2px solid var(--lime);outline-offset:1px}
+
+.tabs{display:flex;gap:8px;padding:16px 20px 0;max-width:1100px;margin:0 auto;width:100%}
+.tab{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 10px;color:var(--muted);text-align:center;transition:border-color .15s,color .15s}
+.tab .t-jp{font-weight:700;font-size:15px}
+.tab .t-en{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.22em;margin-top:2px}
+.tab.active{border-color:var(--lime);color:var(--chalk)}
+.tab.active .t-en{color:var(--lime)}
+.tab:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
+main{max-width:1100px;margin:0 auto;padding:16px 20px 60px;width:100%}
+
+.drop{position:relative;overflow:hidden;border:1.5px dashed var(--line);border-radius:var(--radius);background:var(--panel2);padding:56px 24px;text-align:center;transition:border-color .15s}
+.drop.over{border-color:var(--lime)}
+.drop .circle{position:absolute;left:50%;top:100%;width:520px;height:520px;transform:translate(-50%,-50%);border:1.5px solid rgba(238,244,239,.07);border-radius:50%;pointer-events:none}
+.drop h2{font-size:19px;font-weight:900;margin-bottom:8px}
+.drop p{color:var(--muted);font-size:13px;line-height:1.8}
+.btn-main{display:inline-block;background:var(--lime);color:#101507;border:none;border-radius:999px;padding:13px 30px;font-weight:900;font-size:15px;margin-top:20px}
+.btn-main:hover{filter:brightness(1.07)}
+.btn-sub{display:inline-block;background:transparent;border:1.5px solid var(--amber);color:var(--amber);border-radius:999px;padding:11px 24px;font-weight:900;font-size:14px}
+.btn-sub:hover{background:rgba(255,180,84,.08)}
+.btn-live{display:inline-block;background:transparent;border:1.5px solid var(--blue);color:var(--blue);border-radius:999px;padding:11px 24px;font-weight:900;font-size:14px;margin-top:20px;margin-left:10px}
+.btn-live:hover{background:rgba(127,167,216,.08)}
+.guide{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.guide .g{flex:1;min-width:200px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;text-align:left}
+.guide .g b{display:block;font-size:12px;color:var(--lime);margin-bottom:4px}
+.guide .g span{font-size:12px;color:var(--muted);line-height:1.7}
+.status{margin-top:14px;font-size:12px;color:var(--muted)}
+.status.err{color:var(--red)}
+
+.proc{display:none;text-align:center;padding:70px 20px}
+.proc .pct{font-size:64px;color:var(--lime)}
+.proc p{color:var(--muted);margin-top:6px;font-size:13px}
+.bar{height:4px;background:var(--line);border-radius:2px;max-width:360px;margin:22px auto 0;overflow:hidden}
+.bar i{display:block;height:100%;width:0%;background:var(--lime);transition:width .2s}
+
+/* live */
+.live{display:none;margin-top:16px}
+.live .videowrap{max-width:760px;margin:0 auto}
+.livehud{display:flex;justify-content:space-between;align-items:center;gap:10px;max-width:760px;margin:10px auto 0;flex-wrap:wrap}
+.livehud .st{font-weight:900;font-size:15px}
+.livehud .st.rec{color:var(--red)}
+.livehud .st.armed{color:var(--lime)}
+.livehud .sub2{font-size:12px;color:var(--muted)}
+.livebtns{display:flex;gap:10px}
+
+.results{display:none;margin-top:16px}
+.res-grid{display:grid;grid-template-columns:1.25fr .9fr;gap:16px}
+@media(max-width:860px){.res-grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.card h3{font-size:12px;letter-spacing:.18em;color:var(--muted);font-family:'Oswald',sans-serif;font-weight:600;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.chip{font-family:'Zen Kaku Gothic New';font-size:11px;font-weight:700;border-radius:999px;padding:3px 10px;border:1px solid var(--line)}
+.chip.on{color:var(--lime);border-color:var(--lime-dim)}
+.chip.off{color:var(--amber);border-color:var(--amber)}
+.chip.live{color:var(--blue);border-color:var(--blue)}
+
+.videowrap{position:relative;background:#000;border-radius:10px;overflow:hidden}
+canvas.view{display:block;width:100%;height:auto}
+.vctl{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+.vctl input[type=range]{flex:1;min-width:120px;accent-color:var(--lime)}
+.tbtn{background:var(--panel2);border:1px solid var(--line);color:var(--chalk);border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700}
+.tbtn:hover{border-color:var(--muted)}
+.tbtn.on{border-color:var(--amber);color:var(--amber)}
+.tbtn.stop{border-color:var(--red);color:var(--red)}
+.impact-jump{color:var(--lime)!important;border-color:var(--lime-dim)!important}
+.spark{margin-top:12px}
+.spark canvas{width:100%;height:64px;display:block}
+.spark .lbl{font-size:11px;color:var(--muted);margin-top:4px}
+
+.scorehead{display:flex;align-items:center;gap:16px}
+.ring{position:relative;width:104px;height:104px;flex:none}
+.ring svg{transform:rotate(-90deg)}
+.ring .val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:34px}
+.scorehead .meta .mode{font-weight:900;font-size:17px}
+.scorehead .meta .date{font-size:12px;color:var(--muted);margin-top:2px}
+
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px}
+.metric .k{font-size:11px;color:var(--muted)}
+.metric .v{font-size:26px;margin-top:2px}
+.metric .v small{font-size:12px;color:var(--muted);font-family:'Zen Kaku Gothic New';margin-left:3px}
+.metric .judge{font-size:11px;margin-top:3px;font-weight:700}
+.j-good{color:var(--lime)} .j-mid{color:var(--amber)} .j-bad{color:var(--red)}
+
+.radar-wrap{margin-top:16px;text-align:center}
+.radar-wrap canvas{width:100%;max-width:340px}
+.legend{display:flex;justify-content:center;gap:14px;font-size:11px;color:var(--muted);margin-top:4px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+
+.advice{margin-top:16px}
+.adv{border-left:3px solid var(--lime);background:var(--panel2);border-radius:0 10px 10px 0;padding:12px 14px;margin-bottom:10px}
+.adv.warn{border-left-color:var(--amber)}
+.adv.diff{border-left-color:var(--blue)}
+.adv b{display:block;font-size:14px;margin-bottom:4px}
+.adv p{font-size:13px;color:#c6d2c9;line-height:1.85}
+.res-actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.note{margin-top:12px;font-size:11px;color:var(--muted);line-height:1.7}
+
+.compare{display:none;margin-top:16px}
+.cmp-videos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:700px){.cmp-videos{grid-template-columns:1fr}}
+.cmp-videos .cap{font-size:11px;font-weight:700;margin-bottom:6px}
+.cap.me{color:var(--lime)} .cap.ref{color:var(--amber)}
+.difftable{width:100%;border-collapse:collapse;margin-top:14px;font-size:13px}
+.difftable th{font-size:11px;color:var(--muted);font-weight:700;text-align:right;padding:6px 8px;border-bottom:1px solid var(--line)}
+.difftable th:first-child{text-align:left}
+.difftable td{padding:8px;border-bottom:1px solid var(--line);text-align:right}
+.difftable td:first-child{text-align:left;color:var(--muted)}
+.difftable .me{color:var(--lime)} .difftable .rf{color:var(--amber)}
+.d-pos{color:var(--lime)} .d-neg{color:var(--red)}
+
+.coverage{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:12px;margin-left:6px}
+.coverage .cnum{font-family:'Oswald',sans-serif;font-weight:700;font-size:15px}
+.coverage .cnum.full{color:var(--lime)}.coverage .cnum.part{color:var(--amber)}
+.missing-hint{display:flex;gap:10px;align-items:flex-start;background:rgba(255,180,84,.07);border:1px solid rgba(255,180,84,.3);border-radius:10px;padding:12px 14px;margin-top:12px;font-size:13px;line-height:1.75;color:#d4c5a0}
+.missing-hint .icon{font-size:18px;flex:none;margin-top:1px}
+.hist{margin-top:26px}
+.hist h3{font-size:12px;letter-spacing:.18em;color:var(--muted);font-family:'Oswald',sans-serif;margin-bottom:10px}
+.hist .row{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding:10px 4px;font-size:13px}
+.hist .row .sc{color:var(--lime);font-size:18px}
+.hist .empty{color:var(--muted);font-size:12px}
+footer{max-width:1100px;margin:0 auto;padding:0 20px 40px;font-size:11px;color:#5c6f64;line-height:1.8}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><span class="logo">FORM COACH</span><span class="sub">SOCCER MOTION LAB v4</span></div>
+  <div class="hset"><label for="height">身長</label><input id="height" type="number" value="170" min="100" max="220"> cm</div>
+</header>
+
+<div class="tabs" role="tablist">
+  <button class="tab active" data-mode="kick" role="tab"><div class="t-jp">キック</div><div class="t-en">KICK</div></button>
+  <button class="tab" data-mode="trap" role="tab"><div class="t-jp">トラップ</div><div class="t-en">TRAP</div></button>
+  <button class="tab" data-mode="dribble" role="tab"><div class="t-jp">ドリブル</div><div class="t-en">DRIBBLE</div></button>
+  <button class="tab" data-mode="lift" role="tab"><div class="t-jp">リフティング</div><div class="t-en">LIFT</div></button>
+</div>
+
+<main>
+  <section id="upload" class="drop">
+    <div class="circle"></div>
+    <h2 id="up-title"></h2>
+    <p id="up-desc"></p>
+    <div>
+      <button class="btn-main" id="pick">動画を選ぶ</button>
+      <button class="btn-live" id="livebtn">📷 ライブ計測</button>
+    </div>
+    <input type="file" id="file" accept="video/*" hidden>
+    <input type="file" id="fileRef" accept="video/*" hidden>
+    <div class="guide" id="guide"></div>
+    <div class="status" id="status">AIモデルを読み込み中…(骨格+ボール検出)</div>
+  </section>
+
+  <!-- live capture -->
+  <section class="live" id="live">
+    <div class="videowrap"><canvas class="view" id="liveview"></canvas></div>
+    <div class="livehud">
+      <div>
+        <div class="st" id="livest">カメラ起動中…</div>
+        <div class="sub2" id="livesub"></div>
+      </div>
+      <div class="livebtns">
+        <button class="tbtn stop" id="livestop" style="display:none">■ 計測終了</button>
+        <button class="tbtn" id="livecancel">キャンセル</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="proc" id="proc">
+    <div class="pct num" id="pct">0%</div>
+    <p id="proclbl">解析しています…</p>
+    <div class="bar"><i id="barfill"></i></div>
+  </section>
+
+  <section class="results" id="results">
+    <div class="res-grid">
+      <div class="card">
+        <h3>PLAYBACK <span style="display:flex;gap:6px"><span class="chip" id="srcchip">–</span><span class="chip" id="ballchip">–</span></span></h3>
+        <div class="videowrap"><canvas class="view" id="view"></canvas></div>
+        <div class="vctl">
+          <button class="tbtn" id="play">▶ 再生</button>
+          <button class="tbtn impact-jump" id="jump">⚡ インパクト</button>
+          <input type="range" id="seek" min="0" max="0" value="0" step="1" aria-label="タイムライン">
+        </div>
+        <div class="spark"><canvas id="spark" height="64"></canvas><div class="lbl" id="sparklbl"></div></div>
+      </div>
+      <div class="card">
+        <h3>REPORT <span id="coveragebadge"></span></h3>
+        <div class="scorehead">
+          <div class="ring">
+            <svg width="104" height="104" viewBox="0 0 104 104">
+              <circle cx="52" cy="52" r="46" fill="none" stroke="#26362E" stroke-width="7"/>
+              <circle id="ringfg" cx="52" cy="52" r="46" fill="none" stroke="#C9FF4D" stroke-width="7" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"/>
+            </svg>
+            <div class="val num" id="score">–</div>
+          </div>
+          <div class="meta">
+            <div class="mode" id="res-mode"></div>
+            <div class="date" id="res-date"></div>
+          </div>
+        </div>
+        <div class="metrics" id="metrics"></div>
+        <div class="radar-wrap">
+          <canvas id="radar" width="680" height="560"></canvas>
+          <div class="legend" id="radarlegend"></div>
+        </div>
+        <div class="advice" id="advice"></div>
+        <div class="note" id="resnote"></div>
+        <div id="missinghint"></div>
+        <div class="res-actions">
+          <button class="btn-sub" id="cmpbtn">🆚 お手本と比較する</button>
+          <button class="btn-main" style="margin-top:0" id="again">もう一度解析</button>
+        </div>
+      </div>
+    </div>
+
+    <section class="compare" id="compare">
+      <div class="card" style="margin-top:16px">
+        <h3>SIDE BY SIDE <span style="font-family:'Zen Kaku Gothic New';letter-spacing:0;font-size:11px;color:var(--muted)">インパクトの瞬間で時間を同期</span></h3>
+        <div class="cmp-videos">
+          <div><div class="cap me">■ 自分</div><div class="videowrap"><canvas class="view" id="viewA"></canvas></div></div>
+          <div><div class="cap ref">■ お手本</div><div class="videowrap"><canvas class="view" id="viewB"></canvas></div></div>
+        </div>
+        <div class="vctl">
+          <button class="tbtn" id="cplay">▶ 同期再生(スロー)</button>
+          <button class="tbtn impact-jump" id="cjump">⚡ インパクト</button>
+          <button class="tbtn" id="ghost">👻 骨格を重ねる</button>
+          <input type="range" id="cseek" min="0" max="0" value="0" step="1" aria-label="比較タイムライン">
+        </div>
+        <table class="difftable" id="difftable"></table>
+        <div class="advice" id="diffadvice" style="margin-top:14px"></div>
+        <div class="note">角度系の指標(膝・上体など)は3D骨格から計算するためアングル差にある程度頑健です。速度・距離系は近いアングル同士での比較をおすすめします。左右の向きが逆の場合、重ね表示は自動でミラーリングされます。</div>
+      </div>
+    </section>
+  </section>
+
+  <div class="hist">
+    <h3>SESSION LOG</h3>
+    <div id="histlist"><div class="empty">このセッションの解析結果がここに並びます(ページを閉じると消えます)。</div></div>
+  </div>
+</main>
+
+<footer>
+  ※ 数値は単眼カメラによる推定値です(誤差の目安 ±10%)。膝角度・上体はアングルに頑健な3D計算、速度・距離は真横±30°がもっとも正確です。
+  ライブ計測はカメラ権限(HTTPS環境)が必要です。動画・映像は端末内で処理され、外部に送信されません。
+</footer>
+
+<script type="module">
+/* ================= state ================= */
+let poseLm=null,ballModel=null,mode="kick",globalTs=0;
+let A=null,B=null;   // sessions {src:{kind,video?|list?},frames,vw,vh,fps,res}
+let playing=false,cplaying=false,ghostOn=false,history=[];
+const liveFps={samples:[],last:0,val:0};
+const TARGET_FPS=20;
+const $=id=>document.getElementById(id);
+const heightIn=$("height");
+
+const MODES={
+  kick:{jp:"キック",desc:"真横から全身とボールが映るように撮影。<br>アップロード(3〜8秒のクリップ)か、ライブ計測(蹴ると自動で解析)を選べます。",
+    guide:[["📐 撮影アングル","蹴る方向に対して真横。全身+ボールが常に映る距離。カメラ固定。"],
+           ["🎯 8つの評価軸","ボール速度 / ミート効率 / スイング / バックスイング / 膝の伸展 / 軸足 / 上体 / 振り抜き"],
+           ["📷 ライブ計測","スマホを立てかけて構えるだけ。スイングを検知して自動で解析します。"]]},
+  trap:{jp:"トラップ",desc:"ボールを受ける瞬間が映るように撮影。<br>アップロードか、ライブ計測(受けると自動で解析)を選べます。",
+    guide:[["📐 撮影アングル","受け手の全身と、ボールの軌道が映る画角。カメラ固定。"],
+           ["🎯 5つの評価軸","収まり距離 / ボールの減速率 / クッション / 体の安定性 / 膝のゆとり"],
+           ["📷 ライブ計測","壁当てと相性◎。足の動きを検知して自動で解析します。"]]},
+  dribble:{jp:"ドリブル",desc:"ドリブルの様子を横 or 斜めから撮影。<br>ライブ計測では最大12秒ぶんを記録して停止と同時にレポートします。",
+    guide:[["📐 撮影アングル","移動範囲全体が入る引きの画角。ボールが映っていることが重要。"],
+           ["🎯 7つの評価軸","タッチ頻度 / ボール距離 / リズム安定度 / 逆足 / 視野 / 姿勢 / 推進スピード(姿勢・視野・スピードはボールなしでも計測)"],
+           ["📷 ライブ計測","「計測終了」を押すまでの直近12秒を解析します。"]]},
+  lift:{jp:"リフティング",desc:"リフティングの様子を正面〜斜めから撮影。<br>体とボールが常に映る画角で。ライブ計測は「計測終了」まで直近12秒を記録します。",
+    guide:[["📐 撮影アングル","全身+頭上のボールまで入る引きの画角。カメラ固定。"],
+           ["🎯 6つの評価軸","回数 / リズム / 高さの一定さ / 逆足 / 姿勢 / 上体の安定(姿勢・上体はボールなしでも計測)"],
+           ["📷 ライブ計測","「計測終了」を押すまでの直近12秒を解析します。"]]}
+};
+
+function setMode(m){
+  mode=m;
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.mode===m));
+  $("up-title").textContent=MODES[m].jp+"を解析する";
+  $("up-desc").innerHTML=MODES[m].desc;
+  $("guide").innerHTML=MODES[m].guide.map(([b,s])=>`<div class="g"><b>${b}</b><span>${s}</span></div>`).join("");
+  show("upload");
+}
+document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>{stopLive(true);setMode(t.dataset.mode)}));
+function show(sec){
+  for(const s of ["upload","proc","results","live"])$(s).style.display=s===sec?"block":"none";
+}
+
+/* ================= models ================= */
+(async()=>{
+  try{
+    const vision=await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14");
+    const files=await vision.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+    poseLm=await vision.PoseLandmarker.createFromOptions(files,{
+      baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",delegate:"GPU"},
+      runningMode:"VIDEO",numPoses:1});
+    $("status").textContent="骨格モデルOK。ボール検出モデルを読み込み中…";
+  }catch(e){console.error(e);
+    $("status").textContent="骨格モデルの読み込みに失敗しました。ネットワークを確認して再読み込みしてください。";
+    $("status").classList.add("err");return;}
+  try{
+    const tf=await import("https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/+esm");
+    await tf.ready();
+    const coco=await import("https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/+esm");
+    ballModel=await coco.load({base:"mobilenet_v2"});
+    $("status").textContent="準備OK(骨格+ボール検出)。動画を選ぶか、ライブ計測を始めてください。";
+  }catch(e){console.error(e);ballModel=null;
+    $("status").textContent="準備OK(ボール検出は読み込めず、骨格のみで解析します)。";}
+})();
+
+/* ================= upload entry ================= */
+$("pick").addEventListener("click",()=>$("file").click());
+$("file").addEventListener("change",e=>{if(e.target.files[0])startMain(e.target.files[0]);e.target.value="";});
+$("fileRef").addEventListener("change",e=>{if(e.target.files[0])startRef(e.target.files[0]);e.target.value="";});
+const drop=$("upload");
+drop.addEventListener("dragover",e=>{e.preventDefault();drop.classList.add("over")});
+drop.addEventListener("dragleave",()=>drop.classList.remove("over"));
+drop.addEventListener("drop",e=>{e.preventDefault();drop.classList.remove("over");
+  const f=e.dataTransfer.files[0];if(f&&f.type.startsWith("video"))startMain(f);});
+
+async function startMain(file){
+  if(!poseLm){alert("AIモデルの読み込みがまだ完了していません。");return;}
+  show("proc");$("proclbl").textContent="骨格とボールを1コマずつ解析しています…";
+  try{
+    stopPlays();
+    disposeSession(A);
+    A=await processVideo(file);
+    A.res=analyze(A);
+    disposeSession(B);B=null;
+    $("compare").style.display="none";$("cmpbtn").style.display="inline-block";
+    renderResults();
+  }catch(e){fail(e);}
+}
+async function startRef(file){
+  show("proc");$("proclbl").textContent="お手本動画を解析しています…";
+  try{
+    stopPlays();
+    disposeSession(B);
+    B=await processVideo(file);
+    B.res=analyze(B);
+    show("results");
+    renderCompare();
+  }catch(e){fail(e);}
+}
+function disposeSession(S){
+  if(!S)return;
+  if(S.src.kind==="video")URL.revokeObjectURL(S.src.video.src);
+  if(S.src.kind==="bitmaps")S.src.list.forEach(b=>{try{b.close()}catch(_){}});
+}
+function fail(e){
+  console.error(e);
+  show("upload");
+  $("status").textContent=e.message==="nopose"
+    ?"人物をうまく検出できませんでした。全身が大きく映るように試してください。"
+    :"読み込みに失敗しました。別のファイル・環境で試してください。";
+  $("status").classList.add("err");
+}
+
+/* ================= upload processing ================= */
+async function processVideo(file){
+  const video=document.createElement("video");
+  video.muted=true;video.playsInline=true;video.preload="auto";
+  video.src=URL.createObjectURL(file);
+  await new Promise((res,rej)=>{video.onloadedmetadata=res;video.onerror=()=>rej(new Error("load"))});
+  const vw=video.videoWidth,vh=video.videoHeight;
+  const dur=Math.min(video.duration,12),n=Math.floor(dur*TARGET_FPS);
+  const frames=[];let prevBall=null;
+  for(let i=0;i<n;i++){
+    const t=i/TARGET_FPS;
+    await seekTo(video,t);
+    globalTs=Math.max(globalTs+1,globalTs+50);
+    const r=poseLm.detectForVideo(video,globalTs);
+    const lmNow=pick(r,"landmarks");
+    let ball=null;
+    if(ballModel){
+      ball=await detectBall(video,prevBall,1,lmNow,vw,vh);
+      if(ball)prevBall=ball;
+    }
+    frames.push({t,lm:lmNow,wlm:pick(r,"worldLandmarks"),ball});
+    if(i%3===0){const p=Math.round(i/n*100);$("pct").textContent=p+"%";$("barfill").style.width=p+"%";}
+  }
+  if(frames.filter(f=>f.lm).length<n*0.4)throw new Error("nopose");
+  interpolateBall(frames);
+  return{src:{kind:"video",video},frames,vw,vh,fps:TARGET_FPS};
+}
+const pick=(r,k)=>(r[k]&&r[k][0])?r[k][0]:null;
+function seekTo(video,t){return new Promise(res=>{video.onseeked=()=>res();video.currentTime=t;})}
+let roiCanvas=null;
+async function detectBall(el,prev,scale,lm,vw,vh){
+  const pickBall=(dets,ox,oy)=>{
+    const balls=dets.filter(d=>d.class==="sports ball");
+    if(!balls.length)return null;
+    const ctr=v=>({x:ox+v.bbox[0]+v.bbox[2]/2,y:oy+v.bbox[1]+v.bbox[3]/2});
+    let b=balls[0];
+    if(prev&&balls.length>1)
+      b=balls.reduce((best,d)=>Math.hypot(ctr(d).x*scale-prev.x,ctr(d).y*scale-prev.y)<Math.hypot(ctr(best).x*scale-prev.x,ctr(best).y*scale-prev.y)?d:best);
+    return{x:ctr(b).x*scale,y:ctr(b).y*scale,d:(b.bbox[2]+b.bbox[3])/2*scale};
+  };
+  /* 1) 人物周辺のROIを切り出して検出(SSDは入力を300x300に縮小するため、
+        引きの画角ではボールが小さくなりすぎる。切り出せば相対サイズが上がり検出率が向上) */
+  if(lm&&vw&&vh){
+    const xs=[],ysA=[];
+    for(const k of [0,11,12,23,24,27,28,31,32]){xs.push(lm[k].x*vw);ysA.push(lm[k].y*vh);}
+    const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ysA),maxY=Math.max(...ysA);
+    const pw=Math.max(40,maxX-minX),ph=Math.max(80,maxY-minY);
+    const x0=Math.max(0,Math.round(minX-1.1*ph*0.6)),x1=Math.min(vw,Math.round(maxX+1.1*ph*0.6));
+    const y0=Math.max(0,Math.round(minY-0.5*ph)),y1=Math.min(vh,Math.round(maxY+0.35*ph));
+    const rw=x1-x0,rh=y1-y0;
+    if(rw>60&&rh>60&&rw*rh<vw*vh*0.92){
+      if(!roiCanvas)roiCanvas=document.createElement("canvas");
+      roiCanvas.width=rw;roiCanvas.height=rh;
+      roiCanvas.getContext("2d").drawImage(el,x0,y0,rw,rh,0,0,rw,rh);
+      const dets=await ballModel.detect(roiCanvas,5,0.2);
+      const b=pickBall(dets,x0,y0);
+      if(b)return b;
+    }
+  }
+  /* 2) 全画面フォールバック */
+  const dets=await ballModel.detect(el,5,0.2);
+  return pickBall(dets,0,0);
+}
+function interpolateBall(frames){
+  let i=0;
+  while(i<frames.length){
+    if(frames[i].ball){i++;continue;}
+    let j=i;while(j<frames.length&&!frames[j].ball)j++;
+    const gap=j-i;
+    if(i>0&&j<frames.length&&gap<=4){
+      const a=frames[i-1].ball,b=frames[j].ball;
+      for(let k=0;k<gap;k++){const r=(k+1)/(gap+1);
+        frames[i+k].ball={x:a.x+(b.x-a.x)*r,y:a.y+(b.y-a.y)*r,d:a.d+(b.d-a.d)*r,interp:true};}
+    }
+    i=j;
+  }
+}
+
+/* ================= LIVE capture ================= */
+const live={on:false,stream:null,el:null,buf:[],state:"idle",busy:false,lastS:0,armAt:0,postUntil:0,ballTick:0,t0:0,poseHoldStart:0,cdStart:0,cdShown:-1};
+$("livebtn").addEventListener("click",startLive);
+$("livecancel").addEventListener("click",()=>stopLive(true));
+$("livestop").addEventListener("click",()=>finalizeLive());
+
+async function startLive(){
+  if(!poseLm){alert("AIモデルの読み込みがまだ完了していません。");return;}
+  try{
+    live.stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:"environment",width:{ideal:1280},height:{ideal:720}},audio:false});
+  }catch(e){
+    console.error(e);
+    $("status").textContent="カメラを起動できませんでした。カメラ権限と、HTTPS(または localhost)でのアクセスを確認してください。";
+    $("status").classList.add("err");return;
+  }
+  live.el=document.createElement("video");
+  live.el.srcObject=live.stream;live.el.muted=true;live.el.playsInline=true;
+  await live.el.play();
+  live.on=true;live.buf=[];live.busy=false;live.lastS=0;live.ballTick=0;
+  liveFps.samples=[];liveFps.last=performance.now();liveFps.val=0;
+  live.t0=performance.now();
+  live.state="posing";live.poseHoldStart=0;live.cdStart=0;live.cdShown=-1;
+  $("livestop").style.display="none";
+  const c=$("liveview");
+  c.width=live.el.videoWidth||1280;c.height=live.el.videoHeight||720;
+  show("live");
+  liveLoop();
+}
+function stopLive(silent){
+  if(!live.on)return;
+  live.on=false;
+  live.state="idle";live.poseHoldStart=0;live.cdShown=-1;
+  if(live.stream)live.stream.getTracks().forEach(t=>t.stop());
+  live.buf.forEach(f=>{try{f.bmp.close()}catch(_){}});
+  live.buf=[];
+  if(!silent)show("upload");
+}
+function liveCapSeconds(){return (mode==="dribble"||mode==="lift")?12:3.2}
+
+/* ---- beep (WebAudio, no assets) ---- */
+let actx=null;
+function beep(freq,ms){
+  try{
+    if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(),g=actx.createGain();
+    o.type="sine";o.frequency.value=freq;
+    g.gain.value=0.001;
+    o.connect(g);g.connect(actx.destination);
+    const t=actx.currentTime;
+    g.gain.exponentialRampToValueAtTime(0.25,t+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+ms/1000);
+    o.start(t);o.stop(t+ms/1000+0.02);
+  }catch(_){}
+}
+
+/* ---- position check: full body roughly centered, sized 35-90% of frame height ---- */
+function checkPosition(lm,w,h){
+  if(!lm)return{ok:false,reason:"nobody"};
+  const need=[0,11,12,23,24,25,26,27,28];
+  for(const k of need)if(lm[k].visibility!=null&&lm[k].visibility<0.4)return{ok:false,reason:"partial"};
+  const ys=need.map(k=>lm[k].y*h),xs=need.map(k=>lm[k].x*w);
+  const top=Math.min(...ys),bot=Math.max(...ys);
+  const bodyH=bot-top;
+  const frac=bodyH/h;
+  const marginTop=top/h,marginBot=(h-bot)/h;
+  if(marginTop<0.03||marginBot<0.03)return{ok:false,reason:"cut"};
+  if(frac<0.32)return{ok:false,reason:"far"};
+  if(frac>0.92)return{ok:false,reason:"close"};
+  const cx=(Math.min(...xs)+Math.max(...xs))/2;
+  if(cx/w<0.12||cx/w>0.88)return{ok:false,reason:"side"};
+  return{ok:true};
+}
+
+let posingLm=null;
+async function liveLoop(){
+  if(!live.on)return;
+  const now=performance.now();
+  const c=$("liveview"),ctx=c.getContext("2d");
+  ctx.drawImage(live.el,0,0,c.width,c.height);
+
+  if(live.state==="posing"||live.state==="countdown"){
+    // lightweight per-frame pose check for positioning (cheap; runs every rAF)
+    globalTs=Math.max(globalTs+1,Math.round(now));
+    let lmChk=null;
+    try{const r=poseLm.detectForVideo(live.el,globalTs);lmChk=pick(r,"landmarks");}catch(_){}
+    posingLm=lmChk;
+    drawTargetOverlay(ctx,c.width,c.height,lmChk);
+    if(lmChk)drawSkeletonRaw(ctx,lmChk,c.width,c.height);
+    driveCountdown(now,lmChk,c.width,c.height);
+  }else{
+    const lastF=live.buf[live.buf.length-1];
+    if(lastF&&lastF.lm)drawSkeletonRaw(ctx,lastF.lm,c.width,c.height);
+    if(!live.busy&&now-live.lastS>=1000/TARGET_FPS){
+      live.busy=true;live.lastS=now;
+      try{await sampleLive(now);}catch(e){console.error(e);}
+      live.busy=false;
+    }
+  }
+  updateLiveHUD(now);
+  if(live.on)requestAnimationFrame(liveLoop);
+}
+function driveCountdown(now,lmChk,w,h){
+  if(live.state==="posing"){
+    const chk=checkPosition(lmChk,w,h);
+    if(chk.ok){
+      if(!live.poseHoldStart)live.poseHoldStart=now;
+      if(now-live.poseHoldStart>=700){
+        live.state="countdown";live.cdStart=now;live.cdShown=-1;
+      }
+    }else{
+      live.poseHoldStart=0;
+    }
+  }else if(live.state==="countdown"){
+    const elapsed=now-live.cdStart;
+    const num=3-Math.floor(elapsed/700); // 3,2,1 then go
+    if(num!==live.cdShown&&num>=1){live.cdShown=num;beep(520,140);}
+    if(elapsed>=2100){
+      if(live.cdShown!==0){live.cdShown=0;beep(880,220);}
+      // begin actual measurement now: reset buffer/timers
+      live.buf=[];live.busy=false;live.lastS=0;live.ballTick=0;live.t0=now;
+      liveFps.samples=[];liveFps.last=now;liveFps.val=0;
+      live.state=(mode==="dribble"||mode==="lift")?"rec":"arming";
+      $("livestop").style.display=(mode==="dribble"||mode==="lift")?"inline-block":"none";
+    }
+  }
+}
+function drawTargetOverlay(ctx,w,h,lmChk){
+  const x0=w*0.14,x1=w*0.86,y0=h*0.06,y1=h*0.94;
+  ctx.save();
+  ctx.strokeStyle=live.state==="countdown"?"rgba(201,255,77,.85)":"rgba(255,180,84,.7)";
+  ctx.lineWidth=Math.max(2,w/260);ctx.setLineDash([10,8]);
+  ctx.strokeRect(x0,y0,x1-x0,y1-y0);
+  ctx.setLineDash([]);
+  const cl=Math.min(w,h)*0.05;
+  ctx.lineWidth=Math.max(3,w/180);ctx.strokeStyle=ctx.strokeStyle;
+  for(const [cx,cy,dx,dy] of [[x0,y0,1,1],[x1,y0,-1,1],[x0,y1,1,-1],[x1,y1,-1,-1]]){
+    ctx.beginPath();ctx.moveTo(cx,cy+cl*dy);ctx.lineTo(cx,cy);ctx.lineTo(cx+cl*dx,cy);ctx.stroke();
+  }
+  if(live.state==="countdown"&&live.cdShown>0){
+    ctx.fillStyle="rgba(0,0,0,.35)";ctx.fillRect(0,0,w,h);
+    ctx.fillStyle="#C9FF4D";ctx.font=`900 ${Math.round(Math.min(w,h)*0.32)}px Oswald`;
+    ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText(String(live.cdShown),w/2,h/2);
+  }
+  ctx.restore();
+}
+async function sampleLive(now){
+  const el=live.el;
+  globalTs=Math.max(globalTs+1,Math.round(now));
+  const r=poseLm.detectForVideo(el,globalTs);
+  const lm=pick(r,"landmarks"),wlm=pick(r,"worldLandmarks");
+  const bw=(mode==="dribble"||mode==="lift")?384:640;
+  const scale=bw/el.videoWidth;
+  let ball=null;
+  live.ballTick++;
+  // fps tracking
+  {const now2=performance.now();
+  if(liveFps.last){liveFps.samples.push(1000/(now2-liveFps.last));if(liveFps.samples.length>12)liveFps.samples.shift();liveFps.val=liveFps.samples.reduce((a,b)=>a+b,0)/liveFps.samples.length;}
+  liveFps.last=now2;}
+  // dynamic ball detection interval: every 3f if fps>=18, every 5f if 10-17, every 8f if <10
+  const ballInterval=liveFps.val>=18?3:liveFps.val>=10?5:8;
+  if(ballModel&&live.ballTick%ballInterval===0){
+    const prev=live.buf.length?live.buf[live.buf.length-1].ball:null;
+    ball=await detectBall(el,prev,scale,lm,el.videoWidth,el.videoHeight);
+  }
+  const bmp=await createImageBitmap(el,{resizeWidth:bw});
+  live.buf.push({t:now/1000,lm,wlm,ball,bmp});
+  // rolling cap
+  const cap=Math.ceil(liveCapSeconds()*TARGET_FPS)+(live.state==="post"?24:0);
+  while(live.buf.length>cap){const old=live.buf.shift();try{old.bmp.close()}catch(_){}}
+  // trigger detection for kick/trap
+  if(live.state==="arming"&&now-live.t0>1500)live.state="armed";
+  if(live.state==="armed"){
+    const n=live.buf.length;
+    if(n>=2&&lm&&live.buf[n-2].lm){
+      const hM=(parseFloat(heightIn.value)||170)/100;
+      const body=Math.hypot((lm[0].x-(lm[27].x+lm[28].x)/2)*el.videoWidth,(lm[0].y-(lm[27].y+lm[28].y)/2)*el.videoHeight);
+      const mpp=body?(hM*0.93)/body:0.005;
+      const dt=(live.buf[n-1].t-live.buf[n-2].t)||(1/TARGET_FPS);
+      const sp=k=>{
+        const p1=live.buf[n-1].lm[k],p2=live.buf[n-2].lm[k];
+        return Math.hypot((p1.x-p2.x)*el.videoWidth,(p1.y-p2.y)*el.videoHeight)*mpp/dt;
+      };
+      if(Math.max(sp(31),sp(32))>4.5){
+        live.state="post";live.postUntil=now+900;
+      }
+    }
+  }
+  if(live.state==="post"&&now>=live.postUntil)finalizeLive();
+}
+function drawSkeletonRaw(ctx,lm,w,h){
+  const C=[[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28],[27,31],[28,32]];
+  ctx.lineWidth=Math.max(2,w/320);ctx.strokeStyle="rgba(201,255,77,.85)";
+  for(const [a,b] of C){
+    ctx.beginPath();ctx.moveTo(lm[a].x*w,lm[a].y*h);ctx.lineTo(lm[b].x*w,lm[b].y*h);ctx.stroke();
+  }
+}
+function updateLiveHUD(now){
+  const st=$("livest"),sub=$("livesub");
+  const ballSeen=live.buf.slice(-8).some(f=>f.ball);
+  if(live.state==="posing"){
+    st.textContent="📍 立ち位置を調整してください";st.className="st";
+    const held=live.poseHoldStart?((now-live.poseHoldStart)/700*100):0;
+    sub.textContent=live.poseHoldStart?`いい位置です… 静止(${Math.min(100,Math.round(held))}%)`:"枠の中に全身が入るように立ってください";
+  }else if(live.state==="countdown"){
+    st.textContent="まもなく計測開始";st.className="st armed";
+    sub.textContent="その場で待機してください";
+  }else if(mode==="dribble"||mode==="lift"){
+    const fpsStr=liveFps.val>0?" / "+liveFps.val.toFixed(0)+"fps":"";
+    st.textContent="● 計測中 "+((now-live.t0)/1000).toFixed(0)+"s"+fpsStr;
+    st.className="st rec";
+    const fpsWarn=liveFps.val>0&&liveFps.val<10?" ⚠️ fps低下中":"";
+    sub.textContent=(ballSeen?"⚽ ボール検出中":"⚽ ボール未検出(画角を確認)")+" / 直近12秒を解析します"+fpsWarn;
+  }else if(live.state==="arming"){
+    st.textContent="準備中…";st.className="st";
+    sub.textContent="全身が映る位置に立ってください";
+  }else if(live.state==="armed"){
+    const fpsStr2=liveFps.val>0?" / "+liveFps.val.toFixed(0)+"fps":"";
+    st.textContent="⚡ 待機中 — 蹴ってください"+fpsStr2;st.className="st armed";
+    sub.textContent=(ballSeen?"⚽ ボール検出中":"⚽ ボール未検出")+" / スイングを検知すると自動で解析します";
+  }else if(live.state==="post"){
+    st.textContent="● キャプチャ中…";st.className="st rec";sub.textContent="";
+  }
+}
+async function finalizeLive(){
+  if(!live.on)return;
+  live.on=false;
+  if(live.stream)live.stream.getTracks().forEach(t=>t.stop());
+  const buf=live.buf;live.buf=[];
+  show("proc");$("proclbl").textContent="計測データを解析しています…";$("pct").textContent="…";$("barfill").style.width="70%";
+  try{
+    if(buf.length<TARGET_FPS*1.2)throw new Error("nopose");
+    const t0=buf[0].t;
+    const frames=buf.map(({t,lm,wlm,ball})=>({t:t-t0,lm,wlm,ball}));
+    if(frames.filter(f=>f.lm).length<frames.length*0.4)throw new Error("nopose");
+    interpolateBall(frames);
+    const effFps=(frames.length-1)/Math.max(0.5,frames[frames.length-1].t-frames[0].t);
+    const bmp0=buf[0].bmp;
+    const S={src:{kind:"bitmaps",list:buf.map(b=>b.bmp)},frames,vw:bmp0.width,vh:bmp0.height,fps:effFps,liveCapture:true};
+    stopPlays();
+    disposeSession(A);A=S;A.res=analyze(A);
+    disposeSession(B);B=null;
+    $("compare").style.display="none";$("cmpbtn").style.display="inline-block";
+    renderResults();
+  }catch(e){
+    buf.forEach(f=>{try{f.bmp.close()}catch(_){}});
+    fail(e);
+  }
+}
+
+/* ================= geometry helpers ================= */
+const P=(S,lm,i)=>({x:lm[i].x*S.vw,y:lm[i].y*S.vh});
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+const mid=(a,b)=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2});
+function angle2(a,b,c){
+  const v1={x:a.x-b.x,y:a.y-b.y},v2={x:c.x-b.x,y:c.y-b.y};
+  const d=(v1.x*v2.x+v1.y*v2.y)/((Math.hypot(v1.x,v1.y)*Math.hypot(v2.x,v2.y))||1);
+  return Math.acos(Math.max(-1,Math.min(1,d)))*180/Math.PI;
+}
+function angle3(a,b,c){
+  const v1=[a.x-b.x,a.y-b.y,a.z-b.z],v2=[c.x-b.x,c.y-b.y,c.z-b.z];
+  const n1=Math.hypot(...v1)||1,n2=Math.hypot(...v2)||1;
+  const d=(v1[0]*v2[0]+v1[1]*v2[1]+v1[2]*v2[2])/(n1*n2);
+  return Math.acos(Math.max(-1,Math.min(1,d)))*180/Math.PI;
+}
+function kneeAngle(S,i,side){
+  const f=S.frames[i];if(!f)return null;
+  const idx=side==="L"?[23,25,27]:[24,26,28];
+  if(f.wlm)return angle3(f.wlm[idx[0]],f.wlm[idx[1]],f.wlm[idx[2]]);
+  if(f.lm)return angle2(P(S,f.lm,idx[0]),P(S,f.lm,idx[1]),P(S,f.lm,idx[2]));
+  return null;
+}
+function torsoLean(S,i){
+  const f=S.frames[i];if(!f)return null;
+  if(f.wlm){
+    const g=(a,b)=>({x:(f.wlm[a].x+f.wlm[b].x)/2,y:(f.wlm[a].y+f.wlm[b].y)/2,z:(f.wlm[a].z+f.wlm[b].z)/2});
+    const sh=g(11,12),hp=g(23,24);
+    const v=[sh.x-hp.x,sh.y-hp.y,sh.z-hp.z],n=Math.hypot(...v)||1;
+    return Math.acos(Math.min(1,Math.abs(v[1])/n))*180/Math.PI;
+  }
+  if(f.lm){
+    const sh=mid(P(S,f.lm,11),P(S,f.lm,12)),hp=mid(P(S,f.lm,23),P(S,f.lm,24));
+    return Math.atan2(Math.abs(sh.x-hp.x),Math.abs(hp.y-sh.y))*180/Math.PI;
+  }
+  return null;
+}
+function headPitch3(S,i){
+  const f=S.frames[i];if(!f)return null;
+  if(f.wlm){
+    const nose=f.wlm[0],earM={x:(f.wlm[7].x+f.wlm[8].x)/2,y:(f.wlm[7].y+f.wlm[8].y)/2,z:(f.wlm[7].z+f.wlm[8].z)/2};
+    const dh=Math.max(Math.hypot(nose.x-earM.x,nose.z-earM.z),0.02);
+    return Math.atan2(nose.y-earM.y,dh)*180/Math.PI;
+  }
+  if(f.lm){
+    const nose=P(S,f.lm,0),earM=mid(P(S,f.lm,7),P(S,f.lm,8));
+    const earW=dist(P(S,f.lm,7),P(S,f.lm,8));
+    return Math.atan2(nose.y-earM.y,Math.max(Math.abs(nose.x-earM.x),earW*0.35,1))*180/Math.PI;
+  }
+  return null;
+}
+function smooth(arr,w=1){return arr.map((_,i)=>{let s=0,c=0;for(let j=i-w;j<=i+w;j++){if(j>=0&&j<arr.length&&arr[j]!=null){s+=arr[j];c++}}return c?s/c:0})}
+function median(a){const s=[...a].sort((x,y)=>x-y);return s[Math.floor(s.length/2)]||0}
+function series(S,idx){return S.frames.map(f=>f.lm?P(S,f.lm,idx):null)}
+function speedSeries(S,pts,mpp){return smooth(pts.map((p,i)=>(!p||!pts[i-1])?0:dist(p,pts[i-1])*mpp*S.fps),1)}
+function lmIdxAt(S,i){for(let j=Math.min(i,S.frames.length-1);j>=0;j--){if(S.frames[j]&&S.frames[j].lm)return j}return -1}
+function scoreCurve(v,lo,hi,hardLo,hardHi){
+  if(v==null||!isFinite(v))return null;
+  const c=(lo+hi)/2,half=(hi-lo)/2||1;
+  if(v>=lo&&v<=hi)return Math.round(100-15*Math.abs(v-c)/half);
+  if(v<lo)return Math.max(0,Math.round(85*(v-hardLo)/(lo-hardLo)));
+  return Math.max(0,Math.round(85*(hardHi-v)/(hardHi-hi)));
+}
+/* weighted total over available subscores (weights renormalized) */
+function wscore(sc,W){
+  let s=0,w=0;
+  for(const k in W){if(sc[k]!=null){s+=sc[k]*W[k];w+=W[k]}}
+  return w?Math.round(s/w):0;
+}
+function mppBody(S){
+  const hs=[];
+  for(const f of S.frames){if(!f.lm)continue;hs.push(dist(P(S,f.lm,0),mid(P(S,f.lm,27),P(S,f.lm,28))))}
+  const bodyPx=median(hs),hM=(parseFloat(heightIn.value)||170)/100;
+  return bodyPx?(hM*0.93)/bodyPx:0.005;
+}
+function mppBall(S){
+  const ds=S.frames.filter(f=>f.ball&&!f.ball.interp).map(f=>f.ball.d);
+  return ds.length?0.22/median(ds):null;
+}
+function ballSpeedSeries(S,mB){
+  return smooth(S.frames.map((f,i)=>{
+    if(!f.ball||!S.frames[i-1]||!S.frames[i-1].ball)return 0;
+    return dist(f.ball,S.frames[i-1].ball)*mB*S.fps;
+  }),1);
+}
+function nearestFootDist(S,f,mpp){
+  if(!f.ball||!f.lm)return null;
+  return Math.min(dist(f.ball,P(S,f.lm,31)),dist(f.ball,P(S,f.lm,32)))*mpp;
+}
+function facingOf(S,res){
+  const pts=series(S,res.kickSide==="L"?31:32);
+  const i=res.impact;
+  const a=pts[Math.max(0,i-3)],b=pts[Math.min(pts.length-1,i+1)];
+  if(a&&b&&Math.abs(b.x-a.x)>2)return Math.sign(b.x-a.x);
+  const hips=S.frames.map(f=>f.lm?mid(P(S,f.lm,23),P(S,f.lm,24)).x:null).filter(v=>v!=null);
+  return hips.length>1?(Math.sign(hips[hips.length-1]-hips[0])||1):1;
+}
+
+/* ================= analysis ================= */
+function analyze(S){
+  const mpp=mppBody(S),mB=mppBall(S);
+  const ballOK=!!mB&&S.frames.filter(f=>f.ball).length>=S.frames.length*0.25;
+  const sL=speedSeries(S,series(S,31),mpp),sR=speedSeries(S,series(S,32),mpp);
+  const kickSide=Math.max(...sL)>Math.max(...sR)?"L":"R";
+  const bs=ballOK?ballSpeedSeries(S,mB):null;
+  const base={mpp,mppB:mB,ballOK,sL,sR,kickSide,bs};
+  let res;
+  if(mode==="kick")res={...base,...analyzeKick(S,base)};
+  else if(mode==="trap")res={...base,...analyzeTrap(S,base)};
+  else if(mode==="dribble")res={...base,...analyzeDribble(S,base)};
+  else res={...base,...analyzeLift(S,base)};
+  res.facing=facingOf(S,res);
+  return res;
+}
+const M=(id,k,raw,u,s,digits=0)=>({id,k,raw,disp:raw==null?"–":raw.toFixed(digits),u,s});
+
+function analyzeKick(S,{mpp,ballOK,sL,sR,kickSide,bs}){
+  const sK=kickSide==="L"?sL:sR;
+  let impact=sK.indexOf(Math.max(...sK)),ballKmh=null;
+  if(ballOK){
+    for(let i=2;i<bs.length;i++){if(bs[i]>4&&bs[i-2]<2.2){impact=i;break;}}
+    const after=bs.slice(impact,impact+4).filter(v=>v>1);
+    if(after.length)ballKmh=Math.max(...after)*3.6;
+  }
+  const li=lmIdxAt(S,impact);if(li<0)return{metrics:[],advice:[],score:0,impact,sc:{}};
+  const lm=S.frames[li].lm;
+  const plAnk=kickSide==="L"?P(S,lm,28):P(S,lm,27);
+  const swing=Math.max(...sK.slice(Math.max(0,impact-3),impact+3))*3.6;
+  const knee=kneeAngle(S,li,kickSide);
+  const fb=S.frames[impact];
+  const plant=(ballOK&&fb.ball)?dist(fb.ball,plAnk)*mpp*100:Math.abs(P(S,lm,kickSide==="L"?31:32).x-plAnk.x)*mpp*100;
+  const lean=torsoLean(S,li);
+  const meet=(ballKmh&&swing>5)?ballKmh/swing*100:null;
+
+  /* backswing depth: deepest knee fold of kicking leg in the 0.6s before impact */
+  let back=null;
+  {
+    const from=Math.max(0,impact-Math.round(0.6*S.fps));
+    for(let i=from;i<impact;i++){
+      const a=kneeAngle(S,i,kickSide);
+      if(a!=null)back=back==null?a:Math.min(back,a);
+    }
+  }
+  /* follow-through: residual foot speed after impact vs peak */
+  const peakSp=Math.max(...sK)||0.01;
+  const aft=sK.slice(impact+2,impact+6);
+  const follow=aft.length?aft.reduce((x,y)=>x+y,0)/aft.length/peakSp*100:null;
+
+  const sc={
+    swing:scoreCurve(swing,50,110,15,160),
+    back:scoreCurve(back,45,95,15,150),
+    knee:scoreCurve(knee,140,172,95,185),
+    plant:scoreCurve(plant,20,45,4,85),
+    lean:scoreCurve(lean,4,18,0,45),
+    follow:scoreCurve(follow,35,95,5,130),
+  };
+  const metrics=[];
+  if(ballKmh!=null){
+    sc.ball=scoreCurve(ballKmh,55,130,15,170);
+    sc.meet=scoreCurve(meet,105,150,50,190);
+    metrics.push(M("ball","ボールスピード",ballKmh,"km/h",sc.ball,1),M("meet","ミート効率",meet,"%",sc.meet));
+  }
+  const score=wscore(sc,{ball:.2,meet:.15,swing:.12,back:.1,knee:.13,plant:.12,lean:.08,follow:.1});
+  metrics.push(
+    M("swing","スイングスピード",swing,"km/h",sc.swing,1),
+    M("back","バックスイングの深さ",back,"°",sc.back),
+    M("knee","膝の伸展(3D)",knee,"°",sc.knee),
+    M("plant",ballOK?"軸足〜ボール距離":"軸足〜足先距離",plant,"cm",sc.plant),
+    M("lean","上体の傾き(3D)",lean,"°",sc.lean),
+    M("follow","振り抜き(残存速度)",follow,"%",sc.follow));
+
+  const advice=[];
+  if(meet!=null&&sc.meet<70)advice.push({t:"ミートが薄い",p:`足の速さに対してボールが ${meet.toFixed(0)}% しか出ていません(目安120〜150%)。足の甲の硬い面でボールの中心をとらえる意識を。近距離の壁当てで「いい音」を探す練習20本。`});
+  if(sc.knee<70)advice.push({t:"インパクトで膝が曲がったまま",p:`インパクト時の膝角度が ${knee?.toFixed(0)}°。150°以上まで伸ばし切ると力が伝わります。膝下のスナップだけで蹴るハーフスイング10本×3セット。`});
+  if(sc.back!=null&&sc.back<70&&back>95&&advice.length<2)advice.push({t:"バックスイングが浅い",p:`蹴る前の膝の折りたたみが最小 ${back.toFixed(0)}°(目安45〜90°)。踵をお尻に引きつけるほど加速距離が伸びます。その場で「踵タッチ→蹴る」の連続素振り10回。`});
+  if(sc.plant<70&&advice.length<2)advice.push({t:plant>45?"軸足がボールから遠い":"軸足がボールに近すぎる",p:plant>45?`軸足とボールの距離が約 ${plant.toFixed(0)}cm。目安は20〜30cm。マーカーで踏み込み位置を固定する練習を。`:`軸足が近すぎて振りが窮屈です。ボールの真横、こぶし1〜2個ぶん離して。`});
+  if(sc.follow!=null&&sc.follow<70&&advice.length<2)advice.push({t:"振り抜きが止まっている",p:`インパクト後の足の速度が ${follow.toFixed(0)}% まで落ちています。当てて終わりではなく、蹴った勢いで一歩前に着地するまでがワンセット。`});
+  if(sc.lean<70&&advice.length<2)advice.push({t:lean>18?"上体が倒れすぎ":"上体が立ちすぎ",p:lean>18?`上体が ${lean.toFixed(0)}° 傾いています。軸足の真上に頭を置く意識で。`:`上体が直立しすぎ。少し前傾して胸をかぶせると低く強いボールに。`});
+  if(sc.swing<70&&advice.length<2)advice.push({t:"スイングスピードを上げよう",p:`スイングは ${swing.toFixed(1)}km/h。バックスイングで踵をお尻へ引きつけ、最後の一歩を大きく。`});
+  if(!advice.length)advice.push({t:"フォーム良好!",p:"大きな崩れはありません。自己ベスト更新とコースの打ち分けを次の課題に。",good:true});
+  return{score,sc,metrics,advice:advice.slice(0,2),impact,maxMetrics:8,
+    missingHint:ballOK?null:"ボール系2項目(ボールスピード・ミート効率)が未計測です。ボールが画面幅の3%以上に映る距離で、真横アングルで撮影すると全8項目計測できます。",
+    sparkLabel:ballOK?"緑=蹴り足 / 青=ボール / 縦線=インパクト":"緑=蹴り足 / 縦線=インパクト(ボール未検出)"};
+}
+
+function analyzeTrap(S,{mpp,ballOK,sL,sR,kickSide,bs}){
+  const sK=kickSide==="L"?sL:sR;
+  let impact=sK.indexOf(Math.max(...sK)),settle=null;
+  if(ballOK){
+    for(let i=1;i<S.frames.length;i++){
+      const d=nearestFootDist(S,S.frames[i],mpp);
+      if(d!=null&&d<0.6&&bs[i]>1.5){impact=i;break;}
+    }
+    const j=Math.min(S.frames.length-1,impact+Math.round(0.6*S.fps));
+    const d2=nearestFootDist(S,S.frames[j],mpp);
+    if(d2!=null)settle=d2*100;
+  }
+  const li=lmIdxAt(S,impact);if(li<0)return{metrics:[],advice:[],score:0,impact,sc:{}};
+  const f=S.frames[impact];
+  const recv=(ballOK&&f.ball&&f.lm)?(dist(f.ball,P(S,f.lm,31))<dist(f.ball,P(S,f.lm,32))?"L":"R"):kickSide;
+  const sRec=recv==="L"?sL:sR;
+  const peak=Math.max(...sRec.slice(Math.max(0,impact-2),impact+3))||0.01;
+  let cushion=0;for(let i=impact;i<sRec.length&&sRec[i]>peak*0.3;i++)cushion++;
+  const cushionMs=cushion*(1000/S.fps);
+  const hips=S.frames.map(fr=>fr.lm?mid(P(S,fr.lm,23),P(S,fr.lm,24)).x:null).filter(v=>v!=null);
+  const m=hips.reduce((a,b)=>a+b,0)/(hips.length||1);
+  const sway=Math.sqrt(hips.reduce((a,b)=>a+(b-m)**2,0)/(hips.length||1))*mpp*100;
+  const knee=Math.min(kneeAngle(S,li,"L")??180,kneeAngle(S,li,"R")??180);
+
+  /* ball deceleration: how much incoming speed the first touch kills */
+  let decel=null,inSp=null;
+  if(ballOK){
+    const from=Math.max(1,impact-Math.round(0.5*S.fps));
+    inSp=Math.max(...bs.slice(from,impact+1));
+    const a0=impact+Math.max(1,Math.round(0.2*S.fps));
+    const a1=Math.min(bs.length,impact+Math.round(0.5*S.fps)+1);
+    const seg=bs.slice(a0,a1);
+    if(inSp>1.5&&seg.length){
+      const outSp=seg.reduce((x,y)=>x+y,0)/seg.length;
+      decel=Math.max(0,Math.min(100,(1-outSp/inSp)*100));
+    }
+  }
+  const sc={
+    cushion:scoreCurve(cushionMs,120,350,25,700),
+    sway:scoreCurve(sway,2,8,0,22),
+    knee:scoreCurve(knee,115,155,80,178),
+    decel:scoreCurve(decel,55,90,15,104),
+  };
+  const metrics=[];
+  if(settle!=null){
+    sc.settle=scoreCurve(settle,15,60,0,220);
+    metrics.push(M("settle","ファーストタッチの収まり",settle,"cm",sc.settle));
+  }
+  if(decel!=null)metrics.push(M("decel","ボールの減速率",decel,"%",sc.decel));
+  const score=wscore(sc,{settle:.3,decel:.2,cushion:.2,sway:.15,knee:.15});
+  metrics.push(M("cushion","クッション時間",cushionMs,"ms",sc.cushion),
+               M("sway","体のブレ(左右)",sway,"cm",sc.sway,1),
+               M("knee","膝のゆとり(3D)",knee,"°",sc.knee));
+
+  const advice=[];
+  if(settle!=null&&sc.settle<70)advice.push({t:"ボールが足元から離れている",p:`トラップ後0.6秒でボールが体から約 ${settle.toFixed(0)}cm(目安60cm以内)。当てる瞬間に足を引く量を増やしましょう。`});
+  if(sc.decel!=null&&sc.decel<70&&advice.length<2)advice.push({t:decel<55?"ボールの勢いを殺しきれていない":"ボールを止めすぎている",p:decel<55?`ファーストタッチでボールの勢いを ${decel.toFixed(0)}% しか減速できておらず、弾いています(目安55〜90%)。当てるのではなく「受け止めて逃がす」感覚で。`:`減速率 ${decel.toFixed(0)}%。完全に止めると次のプレーへの推進力が死にます。進みたい方向へ転がしながら止める意識を。`});
+  if(sc.cushion<70&&advice.length<2)advice.push({t:"足が固い(当てて止めている)",p:`接触後の減速が ${cushionMs.toFixed(0)}ms と短め。ボールが来る方向へ足を引きながら触る「クッション」を。壁当てで接触音が小さくなるのを目安に20本。`});
+  if(sc.sway<70&&advice.length<2)advice.push({t:"受ける瞬間に体がぐらついている",p:`重心の左右ブレが ${sway.toFixed(1)}cm。片足立ちでパスを受けるバランス練習が効きます。`});
+  if(sc.knee<70&&advice.length<2)advice.push({t:"膝が伸びきっている",p:`受ける瞬間の膝角度が ${knee.toFixed(0)}°。膝と股関節を軽く曲げて構えると衝撃を吸収できます。`});
+  if(!advice.length)advice.push({t:"柔らかいファーストタッチ!",p:"次は「触った後にボールを置く方向」— 進みたい方向へ50cm前へ。",good:true});
+  return{score,sc,metrics,advice:advice.slice(0,2),impact,maxMetrics:5,
+    missingHint:ballOK?null:"ボール系2項目(ファーストタッチの収まり・ボールの減速率)が未計測です。ボールが映る横アングルで撮影すると全5項目計測できます。",
+    sparkLabel:ballOK?"緑=受け足 / 青=ボール / 縦線=接触":"緑=受け足 / 縦線=接触の推定(ボール未検出)"};
+}
+
+function analyzeDribble(S,{mpp,ballOK,sL,sR,bs}){
+  const durS=S.frames.length/S.fps;
+  /* --- pose-only metrics (always available) --- */
+  let up=0,tot=0,kneeSum=0,kneeN=0;
+  for(let i=0;i<S.frames.length;i++){
+    if(!S.frames[i].lm)continue;tot++;
+    const p=headPitch3(S,i);
+    if(p!=null&&p<40)up++;
+    const kl=kneeAngle(S,i,"L"),kr=kneeAngle(S,i,"R");
+    if(kl!=null&&kr!=null){kneeSum+=(kl+kr)/2;kneeN++;}
+  }
+  const headUp=tot?up/tot*100:0;
+  const posture=kneeN?kneeSum/kneeN:null;               // 平均膝角度(小さいほど低い姿勢)
+  const hipPts=S.frames.map(f=>f.lm?mid(P(S,f.lm,23),P(S,f.lm,24)):null);
+  const hipSp=speedSeries(S,hipPts,mpp).filter(v=>v>0);
+  const travel=hipSp.length?median(hipSp)*3.6:null;      // 推進スピード km/h
+
+  const sc={
+    head:scoreCurve(headUp,55,95,5,100),
+    posture:scoreCurve(posture,125,160,95,178),
+    speed:scoreCurve(travel,5,14,1,25),
+  };
+  const metrics=[],advice=[];
+
+  /* --- ball metrics --- */
+  if(ballOK){
+    let touches=[],last=-99;
+    const gapMin=Math.max(2,Math.round(0.2*S.fps));
+    for(let i=1;i<bs.length-1;i++){
+      const d=nearestFootDist(S,S.frames[i],mpp);
+      if(bs[i]>1.6&&bs[i]>=bs[i-1]&&bs[i]>=bs[i+1]&&i-last>=gapMin&&d!=null&&d<1.0){
+        const f=S.frames[i];
+        const side=(f.lm&&f.ball)?(dist(f.ball,P(S,f.lm,31))<dist(f.ball,P(S,f.lm,32))?"L":"R"):"?";
+        touches.push({i,side});last=i;
+      }
+    }
+    const tL=touches.filter(t=>t.side==="L").length,tR=touches.filter(t=>t.side==="R").length;
+    const cadence=touches.length/(durS||1);
+    const weak=(tL+tR)?Math.min(tL,tR)/(tL+tR)*100:0;
+    const dists=S.frames.map(f=>nearestFootDist(S,f,mpp)).filter(v=>v!=null);
+    const avgDist=dists.length?dists.reduce((a,b)=>a+b,0)/dists.length*100:null;
+    /* タッチリズムの安定度: タッチ間隔の変動係数から */
+    let rhythm=null;
+    if(touches.length>=4){
+      const iv=[];for(let k=1;k<touches.length;k++)iv.push((touches[k].i-touches[k-1].i)/S.fps);
+      const mIv=iv.reduce((a,b)=>a+b,0)/iv.length;
+      const sd=Math.sqrt(iv.reduce((a,b)=>a+(b-mIv)**2,0)/iv.length);
+      rhythm=Math.max(0,Math.min(100,(1-sd/(mIv||1))*100));
+    }
+    sc.cadence=scoreCurve(cadence,1.2,2.8,0.25,5);
+    sc.weak=scoreCurve(weak,32,50,2,50);
+    sc.dist=scoreCurve(avgDist,20,70,4,220);
+    sc.rhythm=scoreCurve(rhythm,65,100,20,101);
+    metrics.push(M("cadence","ボールタッチ頻度",cadence,"回/秒",sc.cadence,1),
+                 M("dist","ボールとの平均距離",avgDist,"cm",sc.dist),
+                 M("rhythm","タッチリズムの安定度",rhythm,"%",sc.rhythm),
+                 M("weak","逆足の使用率",weak,"%",sc.weak));
+    if(sc.dist!=null&&sc.dist<70)advice.push({t:avgDist>70?"ボールが体から離れている":"ボールが足元すぎる",p:avgDist>70?`ボールとの平均距離が ${avgDist.toFixed(0)}cm。「常に1歩で触れる位置」に置く意識で、まずスピードを一段落として。`:`ボールが足元すぎ(平均 ${avgDist.toFixed(0)}cm)。前が空いたら1〜2m先へ押し出す大きいタッチも。`});
+    if(sc.cadence!=null&&sc.cadence<70&&advice.length<2)advice.push({t:cadence<1.2?"タッチ数が少ない":"タッチが細かすぎる",p:cadence<1.2?`タッチ頻度 ${cadence.toFixed(1)}回/秒。「1歩に1タッチ」のリズムを歩く速さから。`:`タッチ頻度 ${cadence.toFixed(1)}回/秒とかなり細かめ。大きめのタッチで緩急を。`});
+    if(sc.rhythm!=null&&sc.rhythm<70&&advice.length<2)advice.push({t:"タッチのリズムがバラバラ",p:`タッチ間隔の安定度が ${rhythm.toFixed(0)}%。メトロノームのように等間隔で触る基礎ドリル(足裏ロール・インアウト)でリズムの土台を作りましょう。`});
+    if(sc.weak!=null&&sc.weak<70&&advice.length<2)advice.push({t:"利き足に偏っている",p:`逆足の使用率が ${weak.toFixed(0)}%。コーンドリル「逆足だけ」を毎回1本追加。`});
+  }else{
+    advice.push({t:"ボール指標は計測できませんでした",p:"タッチ・距離・リズム・左右バランスの計測にはボール検出が必要です(今回は姿勢・視野・スピードのみで評価)。ボールが隠れにくい横からの画角で試してください。"});
+  }
+  /* pose-only metrics are always shown */
+  metrics.push(M("head","顔が上がっている割合",headUp,"%",sc.head),
+               M("posture","姿勢(平均膝角度)",posture,"°",sc.posture),
+               M("speed","推進スピード",travel,"km/h",sc.speed,1));
+  const score=wscore(sc,{dist:.2,cadence:.15,rhythm:.1,weak:.1,head:.2,posture:.1,speed:.15});
+
+  if(sc.head!=null&&sc.head<70&&advice.length<2)advice.push({t:"顔が下がっている",p:`顔が上がっている時間は約 ${headUp.toFixed(0)}%(目安60%以上)。「3タッチに1回前を見る」から。`});
+  if(sc.posture!=null&&sc.posture<70&&advice.length<2)advice.push({t:posture>160?"重心が高い(棒立ち気味)":"沈み込みすぎ",p:posture>160?`平均膝角度が ${posture.toFixed(0)}° と伸び気味です。膝と股関節を軽く曲げて重心を落とすと、方向転換もタッチも速くなります。`:`平均膝角度 ${posture.toFixed(0)}°。沈み込みすぎると一歩が重くなります。`});
+  if(sc.speed!=null&&sc.speed<70&&advice.length<2)advice.push({t:travel<5?"スピードに乗れていない":"スピード過多でコントロールが犠牲に",p:travel<5?`推進スピードが ${travel.toFixed(1)}km/h。コントロールは良くても試合では奪われます。同じタッチ精度のままジョグ→ラン間の速度へ段階的に。`:`推進スピード ${travel.toFixed(1)}km/h。速さは十分なので、ボール距離とリズムの数値を落とさないことを優先課題に。`});
+  if(!advice.length)advice.push({t:"良いドリブル!",p:"次はスピードを上げても同じ数値を保てるかに挑戦を。",good:true});
+  return{score,sc,metrics,advice:advice.slice(0,2),impact:0,maxMetrics:7,
+    missingHint:ballOK?null:"ボール系4項目(タッチ頻度・ボール距離・リズム安定度・逆足使用率)が未計測です。ボールが映る横アングルで撮影すると全7項目計測できます。",
+    sparkLabel:ballOK?"青=ボールスピード(山=タッチ) / 緑=足":"緑=左右の足スピード(ボール未検出)"};
+}
+
+function analyzeLift(S,{mpp,ballOK,sL,sR,bs}){
+  /* --- pose-only: posture & torso stability --- */
+  let kneeSum=0,kneeN=0;const leans=[];
+  for(let i=0;i<S.frames.length;i++){
+    if(!S.frames[i].lm)continue;
+    const kl=kneeAngle(S,i,"L"),kr=kneeAngle(S,i,"R");
+    if(kl!=null&&kr!=null){kneeSum+=(kl+kr)/2;kneeN++;}
+    const tl=torsoLean(S,i);if(tl!=null)leans.push(tl);
+  }
+  const posture=kneeN?kneeSum/kneeN:null;
+  let stable=null;
+  if(leans.length>4){const mL=leans.reduce((a,b)=>a+b,0)/leans.length;
+    stable=Math.sqrt(leans.reduce((a,b)=>a+(b-mL)**2,0)/leans.length);}
+  const sc={posture:scoreCurve(posture,135,168,100,180),stable:scoreCurve(stable,0,8,0,25)};
+  const metrics=[],advice=[];
+  let hits=[];
+  if(ballOK){
+    /* hits: ball's lowest points (local maxima of y, image coords) close to a body part */
+    const ys=S.frames.map(f=>f.ball?f.ball.y:null);
+    const gapMin=Math.max(2,Math.round(0.25*S.fps));
+    let last=-99;
+    for(let i=1;i<S.frames.length-1;i++){
+      if(ys[i]==null||ys[i-1]==null||ys[i+1]==null)continue;
+      if(ys[i]>=ys[i-1]&&ys[i]>ys[i+1]&&i-last>=gapMin){
+        const f=S.frames[i];if(!f.lm)continue;
+        const parts=[[31,"左足"],[32,"右足"],[25,"左膝"],[26,"右膝"],[0,"頭"]];
+        let best=null;
+        for(const [k,name] of parts){
+          const d=dist(f.ball,P(S,f.lm,k))*mpp;
+          if(best==null||d<best.d)best={d,k,name};
+        }
+        if(best&&best.d<1.0){hits.push({i,part:best.name,k:best.k,y:f.ball.y});last=i;}
+      }
+    }
+    const count=hits.length;
+    sc.count=Math.min(100,Math.round(count*4));
+    let rhythm=null;
+    if(count>=4){
+      const iv=[];for(let k=1;k<count;k++)iv.push((hits[k].i-hits[k-1].i)/S.fps);
+      const mIv=iv.reduce((a,b)=>a+b,0)/iv.length;
+      const sd=Math.sqrt(iv.reduce((a,b)=>a+(b-mIv)**2,0)/iv.length);
+      rhythm=Math.max(0,Math.min(100,(1-sd/(mIv||1))*100));
+    }
+    sc.rhythm=scoreCurve(rhythm,70,100,25,101);
+    const fL=hits.filter(h=>h.k===31).length,fR=hits.filter(h=>h.k===32).length;
+    const weak=(fL+fR)?Math.min(fL,fR)/(fL+fR)*100:null;
+    sc.weak=scoreCurve(weak,30,50,0,50);
+    let height=null;
+    if(count>=4){
+      const hy=hits.map(h=>h.y);
+      const mH=hy.reduce((a,b)=>a+b,0)/hy.length;
+      height=Math.sqrt(hy.reduce((a,b)=>a+(b-mH)**2,0)/hy.length)*mpp*100;
+    }
+    sc.height=scoreCurve(height,0,25,0,90);
+    metrics.push(M("count","リフティング回数",count,"回",sc.count),
+                 M("rhythm","リズムの安定度",rhythm,"%",sc.rhythm),
+                 M("height","ヒット高さのばらつき",height,"cm",sc.height),
+                 M("weak","逆足の使用率",weak,"%",sc.weak));
+    if(count<10)advice.push({t:"まずは回数の土台づくり",p:`今回 ${count}回。ワンバウンドリフティング(1タッチごとに地面バウンドOK)で10回連続を最初の目標に。`});
+    if(sc.rhythm!=null&&sc.rhythm<70&&advice.length<2)advice.push({t:"リズムが一定でない",p:`タッチ間隔の安定度が ${rhythm.toFixed(0)}%。「イチ、イチ、イチ」と同じテンポで声を出しながら蹴ると揃います。`});
+    if(sc.height!=null&&sc.height<70&&advice.length<2)advice.push({t:"ボールの高さがバラバラ",p:`ヒット位置のばらつきが ${height.toFixed(0)}cm。腰の高さまでを上限に、毎回同じ強さで「置きにいく」タッチを。`});
+    if(sc.weak!=null&&sc.weak<70&&advice.length<2)advice.push({t:"利き足に偏っている",p:`逆足の使用率が ${weak.toFixed(0)}%。「左右交互縛り」を1セット入れましょう。`});
+  }else{
+    advice.push({t:"ボール指標は計測できませんでした",p:"回数・リズム・高さ・左右バランスの計測にはボール検出が必要です(今回は姿勢・上体の安定のみで評価)。ボールが常に画面内に収まる引きの画角で撮影してください。"});
+  }
+  metrics.push(M("posture","姿勢(平均膝角度)",posture,"°",sc.posture),
+               M("stable","上体の安定(ブレ幅)",stable,"°",sc.stable,1));
+  const score=wscore(sc,{count:.15,rhythm:.2,weak:.1,height:.15,posture:.2,stable:.2});
+  if(sc.stable!=null&&sc.stable<70&&advice.length<2)advice.push({t:"上体がぐらついている",p:`上体の傾きのブレが ±${stable.toFixed(1)}°。おへその上に頭を置き続ける意識で。両腕を軽く広げるとバランスが取りやすくなります。`});
+  if(sc.posture!=null&&sc.posture<70&&advice.length<2)advice.push({t:"膝が伸びきっている",p:`平均膝角度 ${posture.toFixed(0)}°。軸足の膝を軽く緩めると、ボールが乱れたときのリカバリーが速くなります。`});
+  if(!advice.length)advice.push({t:"安定したリフティング!",p:"次は「利き足→逆足→膝→頭」の順に回すサーキットで部位のレパートリーを増やしましょう。",good:true});
+  return{score,sc,metrics,advice:advice.slice(0,2),impact:0,maxMetrics:6,
+    missingHint:ballOK?null:"ボール系4項目(回数・リズム・高さ・逆足)が未計測です。ボールが常に画面内に映る引きの画角で撮影すると全6項目計測できます。",
+    sparkLabel:ballOK?"青=ボールの動き(山=バウンド) / 緑=足":"緑=左右の足スピード(ボール未検出)"};
+}
+
+/* ================= playback plumbing ================= */
+async function setFrame(S,i){
+  if(S.src.kind==="video")await seekTo(S.src.video,S.frames[i].t);
+}
+function drawSrc(ctx,S,i){
+  if(S.src.kind==="video")ctx.drawImage(S.src.video,0,0,S.vw,S.vh);
+  else{
+    const b=S.src.list[Math.max(0,Math.min(S.src.list.length-1,i))];
+    if(b)ctx.drawImage(b,0,0,S.vw,S.vh);
+  }
+}
+function paintOn(canvas,S,i,ghost){
+  const ctx=canvas.getContext("2d");
+  drawSrc(ctx,S,i);
+  const f=S.frames[i];
+  if(f&&f.ball){
+    ctx.strokeStyle=f.ball.interp?"rgba(127,167,216,.5)":"rgba(127,167,216,.95)";
+    ctx.lineWidth=Math.max(2,S.vw/320);
+    ctx.beginPath();ctx.arc(f.ball.x,f.ball.y,Math.max(5,f.ball.d/2),0,7);ctx.stroke();
+  }
+  const lm=f&&f.lm;
+  const C=[[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28],[27,29],[27,31],[28,30],[28,32],[29,31],[30,32]];
+  if(lm){
+    ctx.lineWidth=Math.max(2,S.vw/320);ctx.strokeStyle="rgba(201,255,77,.9)";
+    for(const [a,b] of C){const p=P(S,lm,a),q=P(S,lm,b);ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();}
+    const foot=S.res.kickSide==="L"?31:32;
+    for(const k of [0,11,12,13,14,15,16,23,24,25,26,27,28,29,30,31,32]){
+      const p=P(S,lm,k);
+      ctx.fillStyle=(k===foot&&mode!=="dribble"&&mode!=="lift")?"#FFB454":"#C9FF4D";
+      ctx.beginPath();ctx.arc(p.x,p.y,(k===foot&&mode!=="dribble"&&mode!=="lift")?Math.max(4,S.vw/160):Math.max(2.5,S.vw/300),0,7);ctx.fill();
+    }
+  }
+  if(ghost&&lm){
+    const {S:G,i:giRaw}=ghost;
+    const gi=Math.max(0,Math.min(G.frames.length-1,giRaw));
+    const gf=G.frames[gi];
+    if(gf&&gf.lm){
+      const gHip=mid(P(G,gf.lm,23),P(G,gf.lm,24)),gSh=mid(P(G,gf.lm,11),P(G,gf.lm,12));
+      const gT=dist(gHip,gSh)||1;
+      const uHip=mid(P(S,lm,23),P(S,lm,24)),uSh=mid(P(S,lm,11),P(S,lm,12));
+      const uT=dist(uHip,uSh)||1;
+      const mir=(S.res.facing!==G.res.facing)?-1:1;
+      const map=k=>{
+        const p=P(G,gf.lm,k);
+        return{x:uHip.x+((p.x-gHip.x)*mir)*(uT/gT),y:uHip.y+(p.y-gHip.y)*(uT/gT)};
+      };
+      ctx.lineWidth=Math.max(2,S.vw/340);ctx.strokeStyle="rgba(255,180,84,.75)";ctx.setLineDash([7,5]);
+      for(const [a,b] of C){const p=map(a),q=map(b);ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();}
+      ctx.setLineDash([]);
+    }
+  }
+  if(mode!=="dribble"&&mode!=="lift"&&i===S.res.impact){
+    ctx.fillStyle="rgba(255,180,84,.95)";
+    ctx.font=`${Math.max(14,S.vw/40)}px Oswald`;
+    ctx.fillText("IMPACT",12,Math.max(22,S.vw/28));
+  }
+}
+
+/* ================= render: single ================= */
+const JUDGE=s=>s>=80?["良い","j-good"]:s>=55?["まずまず","j-mid"]:["要改善","j-bad"];
+
+function renderResults(){
+  show("results");
+  const a=A.res;
+  $("res-mode").textContent=MODES[mode].jp+"解析";
+  $("res-date").textContent=new Date().toLocaleString("ja-JP");
+  $("score").textContent=a.score;
+  const ring=$("ringfg");
+  ring.style.transition="none";ring.style.strokeDashoffset=289;
+  requestAnimationFrame(()=>{ring.style.transition="stroke-dashoffset .9s ease";ring.style.strokeDashoffset=289-289*(a.score/100);});
+  $("srcchip").textContent=A.liveCapture?"📷 ライブ":"📁 動画";
+  $("srcchip").className="chip "+(A.liveCapture?"live":"");
+  const chip=$("ballchip");
+  chip.textContent=a.ballOK?"⚽ ボール検出":"⚽ ボール未検出";
+  chip.className="chip "+(a.ballOK?"on":"off");
+  $("metrics").innerHTML=a.metrics.map(m=>{
+    const [j,c]=(m.s==null||m.raw==null)?["計測不可","j-mid"]:JUDGE(m.s);
+    return `<div class="metric"><div class="k">${m.k}</div><div class="v num">${m.disp}<small>${m.u}</small></div><div class="judge ${c}">${j}</div></div>`;
+  }).join("");
+  $("advice").innerHTML=a.advice.map(ad=>`<div class="adv ${ad.good?"":"warn"}"><b>${ad.good?"◎ ":"▲ "}${ad.t}</b><p>${ad.p}</p></div>`).join("");
+  // coverage badge
+  const measured=a.metrics.filter(m=>m.raw!=null).length;
+  const total=a.maxMetrics||a.metrics.length;
+  const full=measured>=total;
+  $("coveragebadge").innerHTML=`<span class="coverage"><span class="cnum ${full?"full":"part"}">${measured}</span>/<span class="cnum">${total}</span> 項目計測</span>`;
+  // resnote
+  const lowFps=A.liveCapture&&A.fps<10;
+  $("resnote").textContent=(A.liveCapture?"ライブ計測("+A.fps.toFixed(0)+"fps実測)"+(lowFps?" ⚠️ fpsが低く速度系指標の誤差が大きい可能性があります":"")+"。":"")+(a.ballOK?"ボール由来の指標はボールの見かけサイズ(直径22cm)から換算しています。":"");
+  // missing hint
+  const mh=$("missinghint");
+  if(a.missingHint){
+    mh.innerHTML=`<div class="missing-hint"><span class="icon">📷</span><span>${a.missingHint}</span></div>`;
+  }else{
+    mh.innerHTML="";
+  }
+  $("sparklbl").textContent=a.sparkLabel||"";
+  $("jump").style.display=(mode==="dribble"||mode==="lift")?"none":"inline-block";
+
+  history.unshift({d:new Date().toLocaleTimeString("ja-JP"),m:MODES[mode].jp+(A.liveCapture?"(ライブ)":""),s:a.score});
+  $("histlist").innerHTML=history.map(h=>`<div class="row"><span>${h.d} — ${h.m}</span><span class="sc num">${h.s}</span></div>`).join("");
+
+  const view=$("view");view.width=A.vw;view.height=A.vh;
+  $("seek").max=A.frames.length-1;$("seek").value=0;
+  drawFrameAt(0);drawSpark();drawRadar();
+}
+async function drawFrameAt(i){await setFrame(A,i);paintOn($("view"),A,i);$("seek").value=i;}
+
+$("seek").addEventListener("input",e=>{stopPlays();drawFrameAt(+e.target.value)});
+$("jump").addEventListener("click",()=>{stopPlays();drawFrameAt(A.res.impact)});
+$("play").addEventListener("click",()=>{playing?stopPlays():startPlay()});
+$("again").addEventListener("click",()=>{stopPlays();show("upload");$("status").textContent="準備OK。動画を選ぶか、ライブ計測を始めてください。";$("status").classList.remove("err")});
+$("cmpbtn").addEventListener("click",()=>$("fileRef").click());
+
+function nearestFrame(S,t){return Math.max(0,Math.min(S.frames.length-1,Math.round(t*S.fps)))}
+function startPlay(){
+  playing=true;$("play").textContent="⏸ 停止";
+  if(A.src.kind==="video"){
+    const end=A.frames[A.frames.length-1].t;
+    if(A.src.video.currentTime>=end-0.05)A.src.video.currentTime=0;
+    A.src.video.play();
+    const loop=()=>{
+      if(!playing)return;
+      const i=nearestFrame(A,A.src.video.currentTime);
+      paintOn($("view"),A,i);$("seek").value=i;
+      if(A.src.video.currentTime>=end){stopPlays();return}
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  }else{
+    let start=+$("seek").value;
+    if(start>=A.frames.length-1)start=0;
+    const t0=performance.now();
+    const loop=()=>{
+      if(!playing)return;
+      const i=start+Math.floor((performance.now()-t0)/1000*A.fps);
+      if(i>=A.frames.length){stopPlays();return}
+      paintOn($("view"),A,i);$("seek").value=i;
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  }
+}
+function stopPlays(){
+  playing=false;cplaying=false;
+  $("play").textContent="▶ 再生";
+  $("cplay").textContent="▶ 同期再生(スロー)";
+  if(A&&A.src.kind==="video")A.src.video.pause();
+  if(B&&B.src.kind==="video")B.src.video.pause();
+}
+
+/* ================= render: compare ================= */
+let rel=0,relMin=0,relMax=0;
+function renderCompare(){
+  $("compare").style.display="block";
+  $("cmpbtn").style.display="none";
+  const vA=$("viewA"),vB=$("viewB");
+  vA.width=A.vw;vA.height=A.vh;vB.width=B.vw;vB.height=B.vh;
+  const iA=A.res.impact,iB=B.res.impact;
+  relMin=-Math.min(iA,iB,Math.round(1.2*Math.min(A.fps,B.fps)));
+  relMax=Math.min(A.frames.length-1-iA,B.frames.length-1-iB);
+  $("cseek").min=relMin;$("cseek").max=relMax;$("cseek").value=0;
+  drawCompareAt(0);
+  renderDiffTable();
+  drawRadar();
+  $("compare").scrollIntoView({behavior:"smooth"});
+}
+async function drawCompareAt(r){
+  rel=r;
+  const iA=Math.max(0,Math.min(A.frames.length-1,A.res.impact+r));
+  const iB=Math.max(0,Math.min(B.frames.length-1,B.res.impact+r));
+  await Promise.all([setFrame(A,iA),setFrame(B,iB)]);
+  paintOn($("viewA"),A,iA,ghostOn?{S:B,i:iB}:null);
+  paintOn($("viewB"),B,iB);
+  $("cseek").value=r;
+}
+$("cseek").addEventListener("input",e=>{stopPlays();drawCompareAt(+e.target.value)});
+$("cjump").addEventListener("click",()=>{stopPlays();drawCompareAt(0)});
+$("ghost").addEventListener("click",()=>{ghostOn=!ghostOn;$("ghost").classList.toggle("on",ghostOn);drawCompareAt(rel)});
+$("cplay").addEventListener("click",()=>{cplaying?stopPlays():startCPlay()});
+async function startCPlay(){
+  cplaying=true;$("cplay").textContent="⏸ 停止";
+  let r=rel>=relMax?relMin:rel;
+  while(cplaying&&r<=relMax){
+    await drawCompareAt(r);
+    await new Promise(res=>setTimeout(res,30));
+    r++;
+  }
+  if(cplaying)stopPlays();
+}
+
+const DIF_TIPS={
+  ball:"助走の勢いとミートの質の両方が効きます。お手本のインパクト前後をコマ送りで見比べてみましょう。",
+  meet:"当てる面(足の甲の硬い部分)とボールの中心を合わせる精度の差です。",
+  swing:"バックスイングの大きさと最後の一歩の踏み込みの差が出やすい項目です。",
+  knee:"インパクトで膝を伸ばし切れているか。ゴースト表示で膝の角度を見比べてください。",
+  plant:"踏み込み位置の再現性。マーカーを置いた反復で詰められます。",
+  lean:"軸足の真上に頭が乗っているか。ゴースト表示で上体の角度を確認。",
+  settle:"足を引く量とタイミングの差。お手本の接触直後の足の動きに注目。",
+  cushion:"接触の瞬間に足を引けているか。スロー再生で足首の動きを比較。",
+  sway:"受ける前の準備姿勢(重心の低さ)の差が出ます。",
+  cadence:"タッチのリズム。お手本の「歩数とタッチ」の関係を数えてみましょう。",
+  dist:"ボールを置く位置の管理。お手本がどこにボールを置いているか軌跡を追ってみて。",
+  weak:"逆足の使用頻度。意識的に逆足縛りの反復を。",
+  head:"顔を上げるタイミング。お手本がいつ前を見ているかに注目。",
+  back:"蹴り足の折りたたみの深さ。お手本のバックスイング最大時で一時停止して見比べを。",
+  follow:"インパクト後に振り切れているか。蹴った後の一歩に注目。",
+  decel:"ファーストタッチでどれだけ勢いを殺せているか。接触直後のボールの転がりを比較。",
+  rhythm:"タッチ間隔の一定さ。お手本のリズムを声に出して数えてみましょう。",
+  posture:"重心の高さ。腰の位置と膝の曲がりをゴースト表示で比較。",
+  speed:"運ぶスピード。同じコース設定でのタイム差も測ってみましょう。",
+  count:"回数の差。お手本のワンタッチごとの安定感に注目。",
+  height:"蹴り上げる強さの一定さ。お手本のボールの上がる高さを観察。",
+  stable:"上体のブレ。お手本の頭の位置がほぼ動かないことに注目。"
+};
+function renderDiffTable(){
+  const a=A.res,b=B.res;
+  const rows=[];
+  for(const ma of a.metrics){
+    const mb=b.metrics.find(m=>m.id===ma.id);
+    if(!mb||ma.raw==null||mb.raw==null)continue;
+    rows.push({ma,mb,d:ma.raw-mb.raw,better:ma.s>=mb.s,gap:mb.s-ma.s});
+  }
+  $("difftable").innerHTML=`<tr><th>指標</th><th>自分</th><th>お手本</th><th>差</th></tr>`+
+    rows.map(r=>`<tr><td>${r.ma.k}</td><td class="me num">${r.ma.disp}<small> ${r.ma.u}</small></td><td class="rf num">${r.mb.disp}<small> ${r.mb.u}</small></td><td class="num ${r.better?"d-pos":"d-neg"}">${r.d>=0?"+":""}${r.d.toFixed(1)}</td></tr>`).join("");
+  const gaps=rows.filter(r=>r.gap>10).sort((x,y)=>y.gap-x.gap).slice(0,2);
+  $("diffadvice").innerHTML=gaps.length
+    ?gaps.map(g=>`<div class="adv diff"><b>🆚 お手本との差:${g.ma.k}</b><p>あなた ${g.ma.disp}${g.ma.u} / お手本 ${g.mb.disp}${g.mb.u}。${DIF_TIPS[g.ma.id]||""}</p></div>`).join("")
+    :`<div class="adv"><b>◎ お手本に近い数値です</b><p>主要指標に大きな差はありません。再現性(何本やっても同じ数値が出るか)を次の課題に。</p></div>`;
+}
+
+/* ================= radar ================= */
+function drawRadar(){
+  const c=$("radar");
+  const ctx=c.getContext("2d");
+  ctx.clearRect(0,0,c.width,c.height);
+  const a=A?A.res:null;if(!a)return;
+  const SHORT={ball:"ボール速度",meet:"ミート",swing:"スイング",back:"バックスイング",knee:"膝",plant:"軸足",lean:"上体",follow:"振り抜き",
+    settle:"収まり",decel:"減速率",cushion:"クッション",sway:"安定性",
+    cadence:"タッチ頻度",dist:"ボール距離",rhythm:"リズム",weak:"逆足",head:"視野",posture:"姿勢",speed:"スピード",count:"回数",height:"高さ",stable:"上体"};
+  const axes=a.metrics.filter(m=>a.sc[m.id]!=null).map(m=>({id:m.id,label:SHORT[m.id]||m.k}));
+  if(axes.length<3)return;
+  const cx=c.width/2,cy=c.height/2+8,R=Math.min(c.width,c.height)/2-92;
+  const N=axes.length,ang=i=>-Math.PI/2+i*2*Math.PI/N;
+  const pt=(i,r)=>({x:cx+Math.cos(ang(i))*R*r/100,y:cy+Math.sin(ang(i))*R*r/100});
+  ctx.strokeStyle="#26362E";ctx.lineWidth=1;
+  ctx.font=(N>=7?"16px":"20px")+" 'Zen Kaku Gothic New'";
+  for(const g of [25,50,75,100]){
+    ctx.beginPath();
+    for(let i=0;i<=N;i++){const p=pt(i%N,g);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);}
+    ctx.stroke();
+  }
+  for(let i=0;i<N;i++){
+    const p=pt(i,100);
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(p.x,p.y);ctx.stroke();
+    const lp=pt(i,124);
+    ctx.fillStyle="#8DA396";ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText(axes[i].label.replace("(3D)",""),lp.x,lp.y);
+  }
+  ctx.beginPath();
+  for(let i=0;i<=N;i++){const p=pt(i%N,100);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);}
+  for(let i=N;i>=0;i--){const p=pt(i%N,80);ctx.lineTo(p.x,p.y);}
+  ctx.closePath();
+  ctx.fillStyle="rgba(201,255,77,.09)";ctx.fill();
+  ctx.strokeStyle="rgba(201,255,77,.35)";ctx.setLineDash([6,6]);
+  ctx.beginPath();
+  for(let i=0;i<=N;i++){const p=pt(i%N,80);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);}
+  ctx.stroke();ctx.setLineDash([]);
+  const poly=(res,col,fill)=>{
+    ctx.beginPath();
+    for(let i=0;i<=N;i++){const s=res.sc[axes[i%N].id]??0;const p=pt(i%N,Math.max(4,s));i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);}
+    ctx.closePath();
+    ctx.fillStyle=fill;ctx.fill();
+    ctx.strokeStyle=col;ctx.lineWidth=3;ctx.stroke();
+  };
+  poly(a,"#C9FF4D","rgba(201,255,77,.22)");
+  if(B&&B.res&&$("compare").style.display==="block")poly(B.res,"#FFB454","rgba(255,180,84,.14)");
+  ctx.fillStyle="rgba(201,255,77,.55)";ctx.font="600 18px Oswald";
+  const lp=pt(0,90);ctx.fillText("PRO ZONE",lp.x,lp.y-14);
+  $("radarlegend").innerHTML=`<span><i style="background:#C9FF4D"></i>自分</span>`+
+    (B&&$("compare").style.display==="block"?`<span><i style="background:#FFB454"></i>お手本</span>`:``)+
+    `<span><i style="background:rgba(201,255,77,.25);border:1px dashed rgba(201,255,77,.5)"></i>PRO ZONE(競技者水準の目安)</span>`;
+}
+
+/* ================= sparkline ================= */
+function drawSpark(){
+  const c=$("spark");c.width=c.clientWidth*2;c.height=128;
+  const ctx=c.getContext("2d");ctx.clearRect(0,0,c.width,c.height);
+  const a=A.res;
+  const draw=(s,col,w=2)=>{
+    const mx=Math.max(...s,0.01);
+    ctx.strokeStyle=col;ctx.lineWidth=w;ctx.beginPath();
+    s.forEach((v,i)=>{const x=i/(s.length-1)*c.width,y=c.height-8-(v/mx)*(c.height-20);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+    ctx.stroke();
+  };
+  if(mode==="dribble"||mode==="lift"){
+    draw(a.sL,"#3d4f45");draw(a.sR,"#3d4f45");
+    if(a.bs)draw(a.bs,"#7FA7D8",2.5);
+  }else{
+    draw(a.kickSide==="L"?a.sR:a.sL,"#3d4f45");
+    draw(a.kickSide==="L"?a.sL:a.sR,"#C9FF4D");
+    if(a.bs)draw(a.bs,"#7FA7D8",2.5);
+    const x=a.impact/(A.frames.length-1)*c.width;
+    ctx.strokeStyle="#FFB454";ctx.lineWidth=2;ctx.setLineDash([6,5]);
+    ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,c.height);ctx.stroke();ctx.setLineDash([]);
+  }
+}
+window.addEventListener("resize",()=>{if(A&&$("results").style.display==="block"){drawSpark();drawRadar();}});
+
+setMode("kick");
+</script>
+</body>
+</html>
